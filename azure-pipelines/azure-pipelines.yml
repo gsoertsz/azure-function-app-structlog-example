@@ -1,0 +1,40 @@
+# File: azure-pipelines.yml
+trigger: none
+pr: none
+#################################################
+# Parameters
+#################################################
+parameters:
+- name: azureServiceConnection
+  displayName: Service Connection
+  type: string
+- name: resourceGroupName
+  displayName: Target Resource Group
+  type: string
+- name: location
+  displayName: Location
+  type: string
+  values:
+    - australiaeast
+- name: functionAppName
+  displayName: Function App Name
+  type: string
+- name: weatherApiKey
+  displayName: Weather API Key
+  type: string
+- name: weatherApiKeySecretName
+  displayName: KeyVault Secret Name for Weather API Key
+  type: string
+#################################################
+# Job Definition
+#################################################
+extends:
+  template: app-deploy.yml
+  parameters:
+    azureServiceConnection: ${{ parameters.azureServiceConnection }}
+    resourceGroupName: ${{ parameters.resourceGroupName }}
+    location: ${{ parameters.location }}
+    functionAppName: ${{ parameters.functionAppName }}
+    weatherApiKey: ${{ parameters.weatherApiKey }}
+    weatherApiKeySecretName: ${{ parameters.weatherApiKeySecretName }}
+

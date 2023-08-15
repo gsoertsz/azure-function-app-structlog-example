@@ -1,0 +1,7 @@
+include requirements.txt 
+include host.json
+exclude *.egg-info
+
+graft Function
+graft shared_code
+graft bicep-templates

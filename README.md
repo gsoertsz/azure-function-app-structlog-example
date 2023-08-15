@@ -1,0 +1,1 @@
+# Function app structured logging example
