@@ -1,0 +1,145 @@
+
+parameters:
+- name: azureServiceConnection
+  displayName: "Azure Service Connection"
+  type: string
+- name: resourceGroupName
+  displayName: "Resource Group Name"
+  type: string
+- name: location
+  displayName: "Location"
+  type: string
+- name: functionAppName
+  displayName: Function App Name
+  type: string
+- name: weatherApiKey
+  displayName: The weather API Key
+  type: string
+- name: weatherApiKeySecretName
+  displayName: The weather API Key Secret Name
+  type: string
+
+variables:
+  - name: 'templateFile'
+    value: './bicep-templates/functionapp.bicep'
+  - name: 'functionAppArchiveName'
+    value: 'azure-function-app-structlog-example'
+
+stages:
+  - stage: Infra_Deploy
+    displayName: Infra_Deploy
+    jobs:
+      - deployment: Deploy_FunctionApp
+        pool:
+          vmImage: ubuntu-latest
+        environment: dev
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureResourceManagerTemplateDeployment@3
+                  inputs:
+                    deploymentScope: 'Resource Group'
+                    azureResourceManagerConnection: '${{ parameters.azureServiceConnection }}'
+                    action: 'Create Or Update Resource Group'
+                    resourceGroupName: '${{ parameters.resourceGroupName }}'
+                    location: '$(location)'
+                    templateLocation: 'Linked artifact'
+                    csmFile: '$(templateFile)'
+                    overrideParameters: '-appName ${{ parameters.functionAppName }} -weatherApiKey ${{ parameters.weatherApiKey }} -weatherApiKeySecretName ${{ parameters.weatherApiKeySecretName }}'
+                    deploymentMode: 'Incremental'
+                    deploymentName: 'DeployPipelineTemplate'
+
+  - stage: FunctionApp_Deploy
+    displayName: FunctionApp_Deploy
+    jobs:
+      - deployment: AppCode_CreateArchive
+        workspace:
+          clean: resources
+        environment: dev
+        displayName: "Generate deployable artifact from a feature branch"
+        pool:
+          vmImage: ubuntu-latest
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: UsePythonVersion@0
+                  inputs:
+                    versionSpec: "3.9"
+                    addToPath: true
+                - task: CmdLine@2
+                  displayName: Install dependencies
+                  inputs:
+                    workingDirectory: $(Build.SourcesDirectory)
+                    script: |
+                      make install
+                - task: CmdLine@2
+                  displayName: Build archive
+                  inputs:
+                    workingDirectory: $(Build.SourcesDirectory)
+                    script: |
+                      make build
+                - task: CmdLine@2
+                  inputs:
+                    script: |
+                      pip download --dest $(Build.SourcesDirectory) $(Build.SourcesDirectory)/dist/$(functionAppArchiveName)*.tar.gz
+                      DOWNLOADED_ARCHIVE=`ls *$(functionAppArchiveName)*`
+                      EXTRACT_PATH=`basename $DOWNLOADED_ARCHIVE .tar.gz`
+                      echo $EXTRACT_PATH
+                      tar xzvf $DOWNLOADED_ARCHIVE
+                      mv $EXTRACT_PATH $(functionAppArchiveName)
+                      pushd $(functionAppArchiveName)
+                      ls -lart
+                      pip install --target "./.python_packages/lib/site-packages" -r ./requirements.txt
+                      popd
+                      mkdir -p $(Build.SourcesDirectory)/archive
+                      tar zvcf $(Build.SourcesDirectory)/archive/$(functionAppArchiveName).$(Build.BuildId).tar.gz $(functionAppArchiveName)/.
+                      ls -lart $(Build.SourcesDirectory)/archive
+                - publish: $(Build.SourcesDirectory)/archive
+                  artifact: drop
+      
+      - deployment: AppCode_Deploy
+        environment: dev
+        displayName: "Deploy artifact"
+        pool:
+          vmImage: ubuntu-latest
+        dependsOn:
+          - AppCode_CreateArchive
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: none
+                - task: DownloadPipelineArtifact@2
+                  inputs:
+                    source: current
+                    artifact: drop
+                    path: $(Build.SourcesDirectory)
+                - task: ExtractFiles@1
+                  inputs:
+                    archiveFilePatterns: "**/*$(Build.BuildId)*.tar.gz"
+                    destinationFolder: "build"
+                    overwriteExistingFiles: true
+                - task: AzureFunctionApp@1
+                  inputs:
+                    azureSubscription: ${{ parameters.azureServiceConnection }}
+                    appType: functionAppLinux
+                    package: $(Build.SourcesDirectory)/build/$(functionAppArchiveName)
+                    appName: ${{ parameters.functionAppName }}
+                - task: AzureCLI@2
+                  inputs:
+                    azureSubscription: ${{ parameters.azureServiceConnection }}
+                    scriptType: bash
+                    scriptLocation: 'inlineScript' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
+                    inlineScript: | 
+                      az webapp cors add -g ${{ parameters.resourceGroupName }} -n ${{ parameters.functionAppName }} --allowed-origins '*'
+                - task: AzureCLI@2
+                  inputs:
+                    azureSubscription: ${{ parameters.azureServiceConnection }}
+                    scriptType: bash
+                    scriptLocation: 'inlineScript' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
+                    inlineScript: | 
+                      az keyvault secret set --name ${{ parameters.weatherApiKeySecretName }} --vault-name "kv-${{ parameters.functionAppName }}" --value ${{ parameters.weatherApiKey }}
