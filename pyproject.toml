@@ -13,13 +13,13 @@ license = { file="LICENSE" }
 requires-python = ">=3.9.7"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: LGPL License",
     "Operating System :: OS Independent",
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/pypa/sampleproject"
-"Bug Tracker" = "https://github.com/pypa/sampleproject/issues"
+"Homepage" = "https://github.com/gsoertsz/azure-function-app-structlog-example/"
+"Bug Tracker" = "https://github.com/gsoertsz/azure-function-app-structlog-example/issues"
 
 [tool.setuptools.packages.find]
 # list of folders that contain the packages (["."] by default)
