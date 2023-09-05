@@ -219,8 +219,8 @@ resource logQueryWeatherLatencyAlert 'Microsoft.Insights/scheduledQueryRules@202
     criteria: {
       allOf: [
         {
-          query: 'FunctionAppLogs | where Category == \'Host.Function.Console\' | extend msg=replace(@"\'", @\'"\', Message) | extend msg_json=parse_json(msg) | extend timestamp=todatetime(msg_json.timestamp), invocation_id=tostring(msg_json._Context__invocation_id), event=msg_json.event, scope=msg_json.scope, function=msg_json.function | sort by timestamp asc | project timestamp, invocation_id, event, scope, function | where event in ("Exiting", "Entering") and function == \'city_request_to_weather\' | extend diff = case(event == "Exiting", datetime_diff(\'millisecond\', timestamp, prev(timestamp)), 0) | summarize latency = max(diff) by invocation_id | summarize p90_latency = percentile(todouble(latency), 90)'
-          metricMeasureColumn: 'p90_latency'
+          query: 'FunctionAppLogs | where Category == \'Host.Function.Console\' | extend msg=replace(@"\'", @\'"\', Message) | extend msg_json=parse_json(msg) | extend timestamp=todatetime(msg_json.timestamp), invocation_id=tostring(msg_json._Context__invocation_id), event=msg_json.event, scope=msg_json.scope, function=msg_json.function | sort by timestamp asc | project timestamp, invocation_id, event, scope, function | where event in ("Exiting", "Entering") and function == \'city_request_to_weather\' | extend diff = case(event == "Exiting", datetime_diff(\'millisecond\', timestamp, prev(timestamp)), 0) | summarize latency = max(diff) by invocation_id | summarize avg_latency = avg(latency)'
+          metricMeasureColumn: 'avg_latency'
           operator: 'GreaterThan'
           timeAggregation: 'Average'
           threshold: 500
