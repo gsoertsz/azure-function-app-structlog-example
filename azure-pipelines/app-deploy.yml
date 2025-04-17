@@ -44,7 +44,7 @@ stages:
                     azureResourceManagerConnection: '${{ parameters.azureServiceConnection }}'
                     action: 'Create Or Update Resource Group'
                     resourceGroupName: '${{ parameters.resourceGroupName }}'
-                    location: '$(location)'
+                    location: '${{ parameters.location }}'
                     templateLocation: 'Linked artifact'
                     csmFile: '$(templateFile)'
                     overrideParameters: '-appName ${{ parameters.functionAppName }} -weatherApiKey ${{ parameters.weatherApiKey }} -weatherApiKeySecretName ${{ parameters.weatherApiKeySecretName }}'
