@@ -23,7 +23,7 @@ variables:
   - name: 'templateFile'
     value: './bicep-templates/functionapp.bicep'
   - name: 'functionAppArchiveName'
-    value: 'azure-function-app-structlog-example'
+    value: 'azure_function_app_structlog_example'
 
 stages:
   - stage: Infra_Deploy
@@ -44,7 +44,7 @@ stages:
                     azureResourceManagerConnection: '${{ parameters.azureServiceConnection }}'
                     action: 'Create Or Update Resource Group'
                     resourceGroupName: '${{ parameters.resourceGroupName }}'
-                    location: '$(location)'
+                    location: '${{ parameters.location }}'
                     templateLocation: 'Linked artifact'
                     csmFile: '$(templateFile)'
                     overrideParameters: '-appName ${{ parameters.functionAppName }} -weatherApiKey ${{ parameters.weatherApiKey }} -weatherApiKeySecretName ${{ parameters.weatherApiKeySecretName }}'
@@ -86,7 +86,7 @@ stages:
                   inputs:
                     script: |
                       pip download --dest $(Build.SourcesDirectory) $(Build.SourcesDirectory)/dist/$(functionAppArchiveName)*.tar.gz
-                      DOWNLOADED_ARCHIVE=`ls *$(functionAppArchiveName)*`
+                      DOWNLOADED_ARCHIVE=`ls *$(functionAppArchiveName)*.tar.gz`
                       EXTRACT_PATH=`basename $DOWNLOADED_ARCHIVE .tar.gz`
                       echo $EXTRACT_PATH
                       tar xzvf $DOWNLOADED_ARCHIVE
