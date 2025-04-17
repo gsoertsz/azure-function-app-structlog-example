@@ -86,7 +86,7 @@ stages:
                   inputs:
                     script: |
                       pip download --dest $(Build.SourcesDirectory) $(Build.SourcesDirectory)/dist/$(functionAppArchiveName)*.tar.gz
-                      DOWNLOADED_ARCHIVE=`ls *$(functionAppArchiveName)*`
+                      DOWNLOADED_ARCHIVE=`ls *$(functionAppArchiveName)*.tar.gz`
                       EXTRACT_PATH=`basename $DOWNLOADED_ARCHIVE .tar.gz`
                       echo $EXTRACT_PATH
                       tar xzvf $DOWNLOADED_ARCHIVE
