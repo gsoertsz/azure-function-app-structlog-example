@@ -23,7 +23,7 @@ variables:
   - name: 'templateFile'
     value: './bicep-templates/functionapp.bicep'
   - name: 'functionAppArchiveName'
-    value: 'azure-function-app-structlog-example'
+    value: 'azure_function_app_structlog_example'
 
 stages:
   - stage: Infra_Deploy
